@@ -29,6 +29,25 @@ customElements.define('lotto-ball', LottoBall);
 
 const generatorBtn = document.getElementById('generator-btn');
 const numbersContainer = document.getElementById('numbers');
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
+const htmlElement = document.documentElement;
+
+// Set initial theme
+const currentTheme = localStorage.getItem('theme');
+if (currentTheme) {
+    htmlElement.setAttribute('data-theme', currentTheme);
+} else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    htmlElement.setAttribute('data-theme', 'dark');
+} else {
+    htmlElement.setAttribute('data-theme', 'light');
+}
+
+themeToggleBtn.addEventListener('click', () => {
+    let newTheme = htmlElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    htmlElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+});
+
 
 generatorBtn.addEventListener('click', () => {
     numbersContainer.innerHTML = '';
