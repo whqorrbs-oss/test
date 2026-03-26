@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>로또번호 추천 | TOSS Style</title>
+  <title>로또번호 추천 | 통계 기반</title>
   <style>
     :root {
       --bg: #f2f4f6;
@@ -41,7 +41,7 @@
     }
 
     .app {
-      width: min(100%, 440px);
+      width: min(100%, 480px);
       display: grid;
       gap: 14px;
     }
@@ -83,7 +83,31 @@
       font-size: 15px;
       color: var(--muted);
       line-height: 1.5;
-      margin-bottom: 18px;
+      margin-bottom: 14px;
+    }
+
+    .sub-info {
+      font-size: 12px;
+      color: #6b7684;
+      margin-bottom: 16px;
+      line-height: 1.45;
+    }
+
+    .hot-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .chip {
+      background: #eef4ff;
+      color: #2855a8;
+      border: 1px solid #dbe9ff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
     }
 
     .numbers-wrap {
@@ -130,7 +154,8 @@
       gap: 10px;
     }
 
-    .btn {
+    .btn,
+    .btn-link {
       appearance: none;
       border: none;
       cursor: pointer;
@@ -140,20 +165,32 @@
       letter-spacing: -0.01em;
       padding: 15px 16px;
       transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease;
+      text-decoration: none;
+      text-align: center;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
     }
 
-    .btn:active { transform: translateY(1px); }
+    .btn:active,
+    .btn-link:active {
+      transform: translateY(1px);
+    }
 
     .btn-primary {
       color: #fff;
       background: linear-gradient(180deg, #4593ff 0%, #3182f6 60%, #2874e5 100%);
     }
 
-    .btn-primary:hover { background: linear-gradient(180deg, #4a97ff 0%, #2978f0 100%); }
-
     .btn-secondary {
       color: var(--primary-strong);
       background: #eef4ff;
+    }
+
+    .btn-buy {
+      color: #0f172a;
+      background: #f0f3f7;
+      border: 1px solid #dde3ea;
     }
 
     .meta {
@@ -223,15 +260,19 @@
 <body>
   <main class="app">
     <section class="card hero">
-      <span class="badge">빠른 추천 · 랜덤 6개</span>
-      <h1>이번 주 로또 번호, 가볍게 추천받기</h1>
-      <p>1부터 45 사이 숫자 중 중복 없이 6개를 추첨해요. 마음에 드는 조합이 나올 때까지 다시 뽑아보세요.</p>
+      <span class="badge">통계 가중치 추천 · 중복 없는 6개</span>
+      <h1>동행복권 누적 통계 기반 로또 번호 추천</h1>
+      <p>번호별 누적 출현 빈도(1~45)를 가중치로 적용해 조합을 추천해요.</p>
+      <p class="sub-info" id="statsInfo"></p>
+
+      <div class="hot-wrap" id="hotNumbers"></div>
 
       <div class="numbers-wrap">
         <ul class="numbers" id="numbers"></ul>
         <div class="actions">
-          <button class="btn btn-primary" id="drawBtn" type="button">번호 다시 추천받기</button>
+          <button class="btn btn-primary" id="drawBtn" type="button">통계 기반으로 다시 추천받기</button>
           <button class="btn btn-secondary" id="copyBtn" type="button">번호 복사하기</button>
+          <a class="btn-link btn-buy" href="https://www.dhlottery.co.kr/lt645/intro" target="_blank" rel="noopener noreferrer">동행복권 로또 구매 사이트 바로가기</a>
         </div>
       </div>
 
@@ -249,6 +290,23 @@
   </main>
 
   <script>
+    const STATS_META = {
+      source: 'Lotto 6/45 Number Frequency Table (동행복권 당첨번호 이력 집계)',
+      updatedAt: '2026-03-21'
+    };
+
+    const FREQUENCY_MAP = {
+      1: 167, 2: 152, 3: 170, 4: 159, 5: 153,
+      6: 163, 7: 168, 8: 155, 9: 133, 10: 160,
+      11: 164, 12: 177, 13: 175, 14: 170, 15: 165,
+      16: 166, 17: 169, 18: 172, 19: 167, 20: 167,
+      21: 165, 22: 141, 23: 147, 24: 164, 25: 150,
+      26: 164, 27: 180, 28: 151, 29: 152, 30: 156,
+      31: 164, 32: 141, 33: 173, 34: 181, 35: 161,
+      36: 162, 37: 171, 38: 169, 39: 165, 40: 172,
+      41: 147, 42: 153, 43: 162, 44: 161, 45: 172
+    };
+
     const numbersEl = document.getElementById('numbers');
     const historyListEl = document.getElementById('historyList');
     const drawCountEl = document.getElementById('drawCount');
@@ -256,6 +314,8 @@
     const emptyStateEl = document.getElementById('emptyState');
     const drawBtn = document.getElementById('drawBtn');
     const copyBtn = document.getElementById('copyBtn');
+    const hotNumbersEl = document.getElementById('hotNumbers');
+    const statsInfoEl = document.getElementById('statsInfo');
 
     let drawCount = 0;
     const history = [];
@@ -267,15 +327,31 @@
       return 'max';
     }
 
-    function makeNumbers() {
-      const pool = Array.from({ length: 45 }, (_, i) => i + 1);
-
-      for (let i = pool.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
+    function getWeightedNumbers() {
+      const candidates = [];
+      for (let n = 1; n <= 45; n += 1) {
+        candidates.push({ number: n, weight: FREQUENCY_MAP[n] || 1 });
       }
 
-      return pool.slice(0, 6).sort((a, b) => a - b);
+      const picked = [];
+      while (picked.length < 6 && candidates.length) {
+        const totalWeight = candidates.reduce((sum, item) => sum + item.weight, 0);
+        let random = Math.random() * totalWeight;
+        let selectedIndex = 0;
+
+        for (let i = 0; i < candidates.length; i += 1) {
+          random -= candidates[i].weight;
+          if (random <= 0) {
+            selectedIndex = i;
+            break;
+          }
+        }
+
+        picked.push(candidates[selectedIndex].number);
+        candidates.splice(selectedIndex, 1);
+      }
+
+      return picked.sort((a, b) => a - b);
     }
 
     function renderNumbers(nums) {
@@ -287,6 +363,21 @@
         li.style.setProperty('--delay', `${idx * 70}ms`);
         li.textContent = String(num);
         numbersEl.appendChild(li);
+      });
+    }
+
+    function renderHotNumbers() {
+      const entries = Object.entries(FREQUENCY_MAP)
+        .map(([number, freq]) => ({ number: Number(number), freq }))
+        .sort((a, b) => b.freq - a.freq)
+        .slice(0, 5);
+
+      hotNumbersEl.innerHTML = '';
+      entries.forEach((item) => {
+        const span = document.createElement('span');
+        span.className = 'chip';
+        span.textContent = `HOT ${item.number} (${item.freq}회)`;
+        hotNumbersEl.appendChild(span);
       });
     }
 
@@ -316,7 +407,7 @@
     }
 
     function draw() {
-      const nums = makeNumbers();
+      const nums = getWeightedNumbers();
       drawCount += 1;
 
       renderNumbers(nums);
@@ -349,6 +440,8 @@
     drawBtn.addEventListener('click', draw);
     copyBtn.addEventListener('click', copyCurrent);
 
+    statsInfoEl.textContent = `기준: ${STATS_META.source} · 누적 집계 기준일 ${STATS_META.updatedAt}`;
+    renderHotNumbers();
     draw();
   </script>
 </body>
