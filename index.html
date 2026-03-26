@@ -1,21 +1,355 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lotto Number Generator</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>로또번호 추천 | TOSS Style</title>
+  <style>
+    :root {
+      --bg: #f2f4f6;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --text: #191f28;
+      --muted: #8b95a1;
+      --primary: #3182f6;
+      --primary-strong: #1b64da;
+      --line: #e5e8eb;
+      --shadow: 0 12px 36px rgba(25, 31, 40, 0.08);
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(80rem 80rem at 120% -10%, rgba(49, 130, 246, 0.13), transparent 55%),
+        radial-gradient(70rem 70rem at -30% 110%, rgba(49, 130, 246, 0.1), transparent 52%),
+        var(--bg);
+      color: var(--text);
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .app {
+      width: min(100%, 440px);
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid rgba(0, 0, 0, 0.02);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      padding: 28px 24px 22px;
+      position: relative;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #eef4ff;
+      color: var(--primary-strong);
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 7px 12px;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      font-size: 26px;
+      letter-spacing: -0.03em;
+      line-height: 1.24;
+      margin-bottom: 10px;
+    }
+
+    .hero p {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+
+    .numbers-wrap {
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 18px 14px;
+    }
+
+    .numbers {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .ball {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #262f3b;
+      transform: translateY(8px) scale(0.96);
+      opacity: 0;
+      animation: rise 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      animation-delay: var(--delay, 0ms);
+    }
+
+    .ball.low { background: #fff6dd; border-color: #ffe8a5; }
+    .ball.mid { background: #e8f4ff; border-color: #cfe7ff; }
+    .ball.high { background: #ecf7ec; border-color: #cfedcf; }
+    .ball.max { background: #f4edff; border-color: #e3d7fb; }
+
+    .actions {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .btn {
+      appearance: none;
+      border: none;
+      cursor: pointer;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      padding: 15px 16px;
+      transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease;
+    }
+
+    .btn:active { transform: translateY(1px); }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(180deg, #4593ff 0%, #3182f6 60%, #2874e5 100%);
+    }
+
+    .btn-primary:hover { background: linear-gradient(180deg, #4a97ff 0%, #2978f0 100%); }
+
+    .btn-secondary {
+      color: var(--primary-strong);
+      background: #eef4ff;
+    }
+
+    .meta {
+      padding: 18px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .history {
+      padding: 18px;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(0, 0, 0, 0.02);
+      box-shadow: var(--shadow);
+    }
+
+    .history h2 {
+      font-size: 16px;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .history-list {
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .history-item {
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: 14px;
+      color: #4e5968;
+      padding: 10px 12px;
+      line-height: 1.4;
+    }
+
+    .empty {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 14px; }
+      .hero { padding: 22px 18px 18px; }
+      h1 { font-size: 23px; }
+      .ball { height: 46px; font-size: 19px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Lotto Number Generator</h1>
-        <div class="lotto-machine">
-            <div id="numbers" class="number-container"></div>
+  <main class="app">
+    <section class="card hero">
+      <span class="badge">빠른 추천 · 랜덤 6개</span>
+      <h1>이번 주 로또 번호, 가볍게 추천받기</h1>
+      <p>1부터 45 사이 숫자 중 중복 없이 6개를 추첨해요. 마음에 드는 조합이 나올 때까지 다시 뽑아보세요.</p>
+
+      <div class="numbers-wrap">
+        <ul class="numbers" id="numbers"></ul>
+        <div class="actions">
+          <button class="btn btn-primary" id="drawBtn" type="button">번호 다시 추천받기</button>
+          <button class="btn btn-secondary" id="copyBtn" type="button">번호 복사하기</button>
         </div>
-        <button id="generator-btn">Generate Numbers</button>
-        <button id="theme-toggle-btn">Toggle Theme</button>
-    </div>
-    <script src="main.js"></script>
+      </div>
+
+      <div class="meta">
+        <span id="drawCount">추천 횟수 1회</span>
+        <span id="drawTime"></span>
+      </div>
+    </section>
+
+    <section class="history">
+      <h2>최근 추천 기록</h2>
+      <ul class="history-list" id="historyList"></ul>
+      <p class="empty" id="emptyState">아직 저장된 추천 기록이 없어요.</p>
+    </section>
+  </main>
+
+  <script>
+    const numbersEl = document.getElementById('numbers');
+    const historyListEl = document.getElementById('historyList');
+    const drawCountEl = document.getElementById('drawCount');
+    const drawTimeEl = document.getElementById('drawTime');
+    const emptyStateEl = document.getElementById('emptyState');
+    const drawBtn = document.getElementById('drawBtn');
+    const copyBtn = document.getElementById('copyBtn');
+
+    let drawCount = 0;
+    const history = [];
+
+    function classify(num) {
+      if (num <= 10) return 'low';
+      if (num <= 20) return 'mid';
+      if (num <= 35) return 'high';
+      return 'max';
+    }
+
+    function makeNumbers() {
+      const pool = Array.from({ length: 45 }, (_, i) => i + 1);
+
+      for (let i = pool.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+
+      return pool.slice(0, 6).sort((a, b) => a - b);
+    }
+
+    function renderNumbers(nums) {
+      numbersEl.innerHTML = '';
+
+      nums.forEach((num, idx) => {
+        const li = document.createElement('li');
+        li.className = `ball ${classify(num)}`;
+        li.style.setProperty('--delay', `${idx * 70}ms`);
+        li.textContent = String(num);
+        numbersEl.appendChild(li);
+      });
+    }
+
+    function renderHistory() {
+      historyListEl.innerHTML = '';
+
+      if (!history.length) {
+        emptyStateEl.style.display = 'block';
+        return;
+      }
+
+      emptyStateEl.style.display = 'none';
+      history.slice(0, 5).forEach((record, idx) => {
+        const li = document.createElement('li');
+        li.className = 'history-item';
+        li.textContent = `${history.length - idx}번째 추천: ${record}`;
+        historyListEl.appendChild(li);
+      });
+    }
+
+    function formatTime(date) {
+      return new Intl.DateTimeFormat('ko-KR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).format(date);
+    }
+
+    function draw() {
+      const nums = makeNumbers();
+      drawCount += 1;
+
+      renderNumbers(nums);
+      history.unshift(nums.join(' · '));
+      if (history.length > 20) history.pop();
+
+      drawCountEl.textContent = `추천 횟수 ${drawCount}회`;
+      drawTimeEl.textContent = `${formatTime(new Date())} 업데이트`;
+      renderHistory();
+    }
+
+    async function copyCurrent() {
+      const current = Array.from(numbersEl.children).map((el) => el.textContent).join(', ');
+      if (!current) return;
+
+      try {
+        await navigator.clipboard.writeText(current);
+        copyBtn.textContent = '복사 완료';
+        setTimeout(() => {
+          copyBtn.textContent = '번호 복사하기';
+        }, 1200);
+      } catch (err) {
+        copyBtn.textContent = '복사 실패';
+        setTimeout(() => {
+          copyBtn.textContent = '번호 복사하기';
+        }, 1200);
+      }
+    }
+
+    drawBtn.addEventListener('click', draw);
+    copyBtn.addEventListener('click', copyCurrent);
+
+    draw();
+  </script>
 </body>
 </html>
