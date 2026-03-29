@@ -5,11 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendBtn = document.getElementById('sendBtn');
     const quickActions = document.getElementById('quickActions');
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
-    
-    const searchModal = document.getElementById('searchModal');
-    const closeModal = document.getElementById('closeModal');
-    const propertySearch = document.getElementById('propertySearch');
-    const searchResults = document.getElementById('searchResults');
 
     // App State
     let currentState = 'START';
@@ -31,6 +26,31 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: '목동신시가지7단지', price: 195000, address: '서울시 양천구 목동' }
     ];
 
+    // --- Search Logic (Kakao Postcode API) ---
+    function openKakaoPostcode() {
+        new kakao.Postcode({
+            oncomplete: function(data) {
+                // data.address, data.buildingName 등 정보 활용
+                const propName = data.buildingName || data.address;
+                
+                // Simulate market price (since Postcode API doesn't provide price)
+                // If it's one of our mock apartments, use that price, otherwise default to 10억
+                const mockApt = APARTMENTS.find(apt => propName.includes(apt.name));
+                const price = mockApt ? mockApt.price : 100000;
+
+                userData.property = {
+                    name: propName,
+                    price: price
+                };
+
+                addMessage(`선택 주소: **${propName}**`, 'user');
+                setTimeout(askHouseCount, 800);
+            },
+            width: '100%',
+            height: '100%'
+        }).open();
+    }
+
     // --- Core Conversation Flow ---
     function initChat() {
         addMessage("안녕하세요! **K-Loan AI 상담사**입니다.\n복잡한 대출 규제를 분석해 고객님의 **예상 대출 한도**를 정확히 짚어드릴게요.", 'ai');
@@ -42,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function askProperty() {
         currentState = 'SELECT_PROPERTY';
         addMessage("먼저, 한도가 궁금하신 **아파트나 주소**를 알려주세요.", 'ai');
-        showOptions([{ label: "🏠 아파트 검색하기", action: openSearchModal }]);
+        showOptions([{ label: "🏠 주소/단지 검색하기", action: openKakaoPostcode }]);
     }
 
     function askHouseCount() {
@@ -134,43 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(showResult, 800);
         }
     }
-
-    // --- Search Modal Logic ---
-    function openSearchModal() {
-        searchModal.style.display = 'flex';
-        propertySearch.focus();
-    }
-
-    closeModal.onclick = () => searchModal.style.display = 'none';
-
-    propertySearch.oninput = (e) => {
-        const query = e.target.value.trim();
-        if (!query) {
-            searchResults.innerHTML = '';
-            return;
-        }
-        const filtered = APARTMENTS.filter(apt => apt.name.includes(query) || apt.address.includes(query));
-        searchResults.innerHTML = filtered.map(apt => `
-            <div class="modal-item" data-name="${apt.name}" data-price="${apt.price}">
-                <strong>${apt.name}</strong><br>
-                <small>${apt.address}</small>
-            </div>
-        `).join('');
-    };
-
-    searchResults.onclick = (e) => {
-        const item = e.target.closest('.modal-item');
-        if (!item) return;
-
-        userData.property = {
-            name: item.dataset.name,
-            price: parseInt(item.dataset.price)
-        };
-
-        searchModal.style.display = 'none';
-        addMessage(`선택 단지: **${userData.property.name}**`, 'user');
-        setTimeout(askHouseCount, 800);
-    };
 
     // --- Calculation Logic ---
     function calculateLimits() {
