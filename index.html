@@ -1,535 +1,88 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>로또번호 추천 | 통계 기반</title>
-  <style>
-    :root {
-      --bg: #f2f4f6;
-      --surface: #ffffff;
-      --surface-soft: #f8fafc;
-      --text: #191f28;
-      --muted: #8b95a1;
-      --primary: #3182f6;
-      --primary-strong: #1b64da;
-      --line: #e5e8eb;
-      --shadow: 0 12px 36px rgba(25, 31, 40, 0.08);
-      --radius-lg: 24px;
-      --radius-md: 16px;
-      --radius-sm: 12px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-    }
-
-    body {
-      min-height: 100vh;
-      background:
-        radial-gradient(80rem 80rem at 120% -10%, rgba(49, 130, 246, 0.13), transparent 55%),
-        radial-gradient(70rem 70rem at -30% 110%, rgba(49, 130, 246, 0.1), transparent 52%),
-        var(--bg);
-      color: var(--text);
-      padding: 24px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .app {
-      width: min(100%, 480px);
-      display: grid;
-      gap: 14px;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid rgba(0, 0, 0, 0.02);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .hero {
-      padding: 28px 24px 22px;
-      position: relative;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: #eef4ff;
-      color: var(--primary-strong);
-      font-size: 12px;
-      font-weight: 700;
-      border-radius: 999px;
-      padding: 7px 12px;
-      margin-bottom: 14px;
-    }
-
-    h1 {
-      font-size: 26px;
-      letter-spacing: -0.03em;
-      line-height: 1.24;
-      margin-bottom: 10px;
-    }
-
-    .hero p {
-      font-size: 15px;
-      color: var(--muted);
-      line-height: 1.5;
-      margin-bottom: 14px;
-    }
-
-    .sub-info {
-      font-size: 12px;
-      color: #6b7684;
-      margin-bottom: 16px;
-      line-height: 1.45;
-    }
-
-    .hot-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 16px;
-    }
-
-    .chip {
-      background: #eef4ff;
-      color: #2855a8;
-      border: 1px solid #dbe9ff;
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .numbers-wrap {
-      background: var(--surface-soft);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
-      padding: 18px 14px;
-    }
-
-    .numbers {
-      list-style: none;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .ball {
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 21px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: #262f3b;
-      transform: translateY(8px) scale(0.96);
-      opacity: 0;
-      animation: rise 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      animation-delay: var(--delay, 0ms);
-    }
-
-    .ball.low { background: #fff6dd; border-color: #ffe8a5; }
-    .ball.mid { background: #e8f4ff; border-color: #cfe7ff; }
-    .ball.high { background: #ecf7ec; border-color: #cfedcf; }
-    .ball.max { background: #f4edff; border-color: #e3d7fb; }
-
-    .actions {
-      margin-top: 16px;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-
-    .btn,
-    .btn-link {
-      appearance: none;
-      border: none;
-      cursor: pointer;
-      border-radius: 14px;
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      padding: 15px 16px;
-      transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease;
-      text-decoration: none;
-      text-align: center;
-      display: inline-flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .btn:active,
-    .btn-link:active {
-      transform: translateY(1px);
-    }
-
-    .btn-primary {
-      color: #fff;
-      background: linear-gradient(180deg, #4593ff 0%, #3182f6 60%, #2874e5 100%);
-    }
-
-    .btn-secondary {
-      color: var(--primary-strong);
-      background: #eef4ff;
-    }
-
-    .btn-buy {
-      color: #0f172a;
-      background: #f0f3f7;
-      border: 1px solid #dde3ea;
-    }
-
-    .meta {
-      padding: 18px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-top: 1px solid var(--line);
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .history {
-      padding: 18px;
-      background: var(--surface);
-      border-radius: var(--radius-lg);
-      border: 1px solid rgba(0, 0, 0, 0.02);
-      box-shadow: var(--shadow);
-    }
-
-    .history h2 {
-      font-size: 16px;
-      letter-spacing: -0.02em;
-      margin-bottom: 12px;
-    }
-
-    .history-list {
-      list-style: none;
-      display: grid;
-      gap: 8px;
-    }
-
-    .history-item {
-      background: var(--surface-soft);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      font-size: 14px;
-      color: #4e5968;
-      padding: 10px 12px;
-      line-height: 1.4;
-    }
-
-    .partnership {
-      padding: 24px;
-      background: var(--surface);
-      border-radius: var(--radius-lg);
-      border: 1px solid rgba(0, 0, 0, 0.02);
-      box-shadow: var(--shadow);
-    }
-
-    .partnership h2 {
-      font-size: 20px;
-      margin-bottom: 20px;
-      letter-spacing: -0.02em;
-    }
-
-    .form-group {
-      margin-bottom: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .form-group label {
-      font-size: 14px;
-      font-weight: 600;
-      color: #4e5968;
-    }
-
-    .form-group input,
-    .form-group textarea {
-      width: 100%;
-      padding: 12px 16px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--line);
-      font-size: 15px;
-      background: var(--surface-soft);
-      transition: border-color 0.2s;
-      font-family: inherit;
-    }
-
-    .form-group input:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      background: #fff;
-    }
-
-    .empty {
-      font-size: 14px;
-      color: var(--muted);
-    }
-
-    @keyframes rise {
-      from {
-        opacity: 0;
-        transform: translateY(10px) scale(0.96);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    @media (max-width: 480px) {
-      body { padding: 14px; }
-      .hero { padding: 22px 18px 18px; }
-      h1 { font-size: 23px; }
-      .ball { height: 46px; font-size: 19px; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Loan AI Hub | 스마트 대출 상담</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body>
-  <main class="app">
-    <section class="card hero">
-      <span class="badge">통계 가중치 추천 · 중복 없는 6개</span>
-      <h1>동행복권 누적 통계 기반 로또 번호 추천</h1>
-      <p>번호별 누적 출현 빈도(1~45)를 가중치로 적용해 조합을 추천해요.</p>
-      <p class="sub-info" id="statsInfo"></p>
+    <div class="app-container">
+        <!-- Sidebar / Calculator Section -->
+        <aside class="calculator-panel">
+            <div class="panel-header">
+                <h2><i class="bi bi-calculator"></i> 대출 계산기</h2>
+                <p>월 상환액을 미리 확인해보세요.</p>
+            </div>
+            <div class="calc-form">
+                <div class="input-group">
+                    <label>대출 금액 (만원)</label>
+                    <input type="number" id="loanAmount" placeholder="예: 5000" value="10000">
+                </div>
+                <div class="input-group">
+                    <label>대출 금리 (%)</label>
+                    <input type="number" id="loanRate" step="0.1" placeholder="예: 3.5" value="4.5">
+                </div>
+                <div class="input-group">
+                    <label>대출 기간 (년)</label>
+                    <input type="number" id="loanTerm" placeholder="예: 30" value="30">
+                </div>
+                <div class="input-group">
+                    <label>상환 방식</label>
+                    <select id="repayMethod">
+                        <option value="level">원리금균등상환</option>
+                        <option value="principal">원금균등상환</option>
+                    </select>
+                </div>
+                <button id="calcBtn" class="primary-btn">계산하기</button>
+            </div>
+            <div id="calcResult" class="calc-result" style="display: none;">
+                <div class="result-item">
+                    <span>월 평균 상환액</span>
+                    <strong id="monthlyPayment">0원</strong>
+                </div>
+                <div class="result-item">
+                    <span>총 이자 합계</span>
+                    <strong id="totalInterest">0원</strong>
+                </div>
+            </div>
+        </aside>
 
-      <div class="hot-wrap" id="hotNumbers"></div>
+        <!-- Main Chat Section -->
+        <main class="chat-panel">
+            <header class="chat-header">
+                <div class="header-info">
+                    <h1>K-Loan AI 상담사</h1>
+                    <span class="status-badge"><span class="dot"></span> 실시간 상담 가능</span>
+                </div>
+                <button id="theme-toggle-btn" class="icon-btn"><i class="bi bi-moon-stars"></i></button>
+            </header>
 
-      <div class="numbers-wrap">
-        <ul class="numbers" id="numbers"></ul>
-        <div class="actions">
-          <button class="btn btn-primary" id="drawBtn" type="button">통계 기반으로 다시 추천받기</button>
-          <button class="btn btn-secondary" id="copyBtn" type="button">번호 복사하기</button>
-          <a class="btn-link btn-buy" href="https://www.dhlottery.co.kr/lt645/intro" target="_blank" rel="noopener noreferrer">동행복권 로또 구매 사이트 바로가기</a>
-        </div>
-      </div>
+            <div id="chatMessages" class="chat-messages">
+                <div class="message ai">
+                    <div class="bubble">
+                        안녕하세요! 한국 금융 정책과 대출 상품에 정통한 **K-Loan AI 상담사**입니다. 
+                        전세자금대출, 주택담보대출, 또는 디딤돌/버팀목 같은 정책 자금에 대해 궁금한 점이 있으신가요?
+                    </div>
+                </div>
+            </div>
 
-      <div class="meta">
-        <span id="drawCount">추천 횟수 1회</span>
-        <span id="drawTime"></span>
-      </div>
-    </section>
+            <div class="quick-actions">
+                <button class="chip">🏠 디딤돌 대출 자격</button>
+                <button class="chip">🏢 전세버팀목 안내</button>
+                <button class="chip">📉 현재 금리 추이</button>
+                <button class="chip">🔍 LTV/DSR이 뭐야?</button>
+            </div>
 
-    <section class="history">
-      <h2>최근 추천 기록</h2>
-      <ul class="history-list" id="historyList"></ul>
-      <p class="empty" id="emptyState">아직 저장된 추천 기록이 없어요.</p>
-    </section>
-
-    <section class="partnership">
-      <h2>제휴 문의</h2>
-      <form action="https://formspree.io/f/xqegpaqn" method="POST">
-        <div class="form-group">
-          <label for="name">이름/기업명</label>
-          <input type="text" id="name" name="name" placeholder="홍길동" required>
-        </div>
-        <div class="form-group">
-          <label for="email">이메일</label>
-          <input type="email" id="email" name="_replyto" placeholder="example@mail.com" required>
-        </div>
-        <div class="form-group">
-          <label for="message">문의 내용</label>
-          <textarea id="message" name="message" rows="4" placeholder="문의하실 내용을 입력해주세요." required></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%;">문의 보내기</button>
-      </form>
-    </section>
-
-    <section class="card" style="padding: 24px; margin-top: 14px;">
-      <div id="disqus_thread"></div>
-      <script>
-          /**
-          *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
-          *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
-          /*
-          var disqus_config = function () {
-          this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
-          this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
-          };
-          */
-          (function() { // DON'T EDIT BELOW THIS LINE
-          var d = document, s = d.createElement('script');
-          s.src = 'https://beck-test1.disqus.com/embed.js';
-          s.setAttribute('data-timestamp', +new Date());
-          (d.head || d.body).appendChild(s);
-          })();
-      </script>
-      <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-    </section>
-  </main>
-
-  <script>
-    const STATS_META = {
-      source: 'Lotto 6/45 Number Frequency Table (동행복권 당첨번호 이력 집계)',
-      updatedAt: '2026-03-21'
-    };
-
-    const FREQUENCY_MAP = {
-      1: 167, 2: 152, 3: 170, 4: 159, 5: 153,
-      6: 163, 7: 168, 8: 155, 9: 133, 10: 160,
-      11: 164, 12: 177, 13: 175, 14: 170, 15: 165,
-      16: 166, 17: 169, 18: 172, 19: 167, 20: 167,
-      21: 165, 22: 141, 23: 147, 24: 164, 25: 150,
-      26: 164, 27: 180, 28: 151, 29: 152, 30: 156,
-      31: 164, 32: 141, 33: 173, 34: 181, 35: 161,
-      36: 162, 37: 171, 38: 169, 39: 165, 40: 172,
-      41: 147, 42: 153, 43: 162, 44: 161, 45: 172
-    };
-
-    const numbersEl = document.getElementById('numbers');
-    const historyListEl = document.getElementById('historyList');
-    const drawCountEl = document.getElementById('drawCount');
-    const drawTimeEl = document.getElementById('drawTime');
-    const emptyStateEl = document.getElementById('emptyState');
-    const drawBtn = document.getElementById('drawBtn');
-    const copyBtn = document.getElementById('copyBtn');
-    const hotNumbersEl = document.getElementById('hotNumbers');
-    const statsInfoEl = document.getElementById('statsInfo');
-
-    let drawCount = 0;
-    const history = [];
-
-    function classify(num) {
-      if (num <= 10) return 'low';
-      if (num <= 20) return 'mid';
-      if (num <= 35) return 'high';
-      return 'max';
-    }
-
-    function getWeightedNumbers() {
-      const candidates = [];
-      for (let n = 1; n <= 45; n += 1) {
-        candidates.push({ number: n, weight: FREQUENCY_MAP[n] || 1 });
-      }
-
-      const picked = [];
-      while (picked.length < 6 && candidates.length) {
-        const totalWeight = candidates.reduce((sum, item) => sum + item.weight, 0);
-        let random = Math.random() * totalWeight;
-        let selectedIndex = 0;
-
-        for (let i = 0; i < candidates.length; i += 1) {
-          random -= candidates[i].weight;
-          if (random <= 0) {
-            selectedIndex = i;
-            break;
-          }
-        }
-
-        picked.push(candidates[selectedIndex].number);
-        candidates.splice(selectedIndex, 1);
-      }
-
-      return picked.sort((a, b) => a - b);
-    }
-
-    function renderNumbers(nums) {
-      numbersEl.innerHTML = '';
-
-      nums.forEach((num, idx) => {
-        const li = document.createElement('li');
-        li.className = `ball ${classify(num)}`;
-        li.style.setProperty('--delay', `${idx * 70}ms`);
-        li.textContent = String(num);
-        numbersEl.appendChild(li);
-      });
-    }
-
-    function renderHotNumbers() {
-      const entries = Object.entries(FREQUENCY_MAP)
-        .map(([number, freq]) => ({ number: Number(number), freq }))
-        .sort((a, b) => b.freq - a.freq)
-        .slice(0, 5);
-
-      hotNumbersEl.innerHTML = '';
-      entries.forEach((item) => {
-        const span = document.createElement('span');
-        span.className = 'chip';
-        span.textContent = `HOT ${item.number} (${item.freq}회)`;
-        hotNumbersEl.appendChild(span);
-      });
-    }
-
-    function renderHistory() {
-      historyListEl.innerHTML = '';
-
-      if (!history.length) {
-        emptyStateEl.style.display = 'block';
-        return;
-      }
-
-      emptyStateEl.style.display = 'none';
-      history.slice(0, 5).forEach((record, idx) => {
-        const li = document.createElement('li');
-        li.className = 'history-item';
-        li.textContent = `${history.length - idx}번째 추천: ${record}`;
-        historyListEl.appendChild(li);
-      });
-    }
-
-    function formatTime(date) {
-      return new Intl.DateTimeFormat('ko-KR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      }).format(date);
-    }
-
-    function draw() {
-      const nums = getWeightedNumbers();
-      drawCount += 1;
-
-      renderNumbers(nums);
-      history.unshift(nums.join(' · '));
-      if (history.length > 20) history.pop();
-
-      drawCountEl.textContent = `추천 횟수 ${drawCount}회`;
-      drawTimeEl.textContent = `${formatTime(new Date())} 업데이트`;
-      renderHistory();
-    }
-
-    async function copyCurrent() {
-      const current = Array.from(numbersEl.children).map((el) => el.textContent).join(', ');
-      if (!current) return;
-
-      try {
-        await navigator.clipboard.writeText(current);
-        copyBtn.textContent = '복사 완료';
-        setTimeout(() => {
-          copyBtn.textContent = '번호 복사하기';
-        }, 1200);
-      } catch (err) {
-        copyBtn.textContent = '복사 실패';
-        setTimeout(() => {
-          copyBtn.textContent = '번호 복사하기';
-        }, 1200);
-      }
-    }
-
-    drawBtn.addEventListener('click', draw);
-    copyBtn.addEventListener('click', copyCurrent);
-
-    statsInfoEl.textContent = `기준: ${STATS_META.source} · 누적 집계 기준일 ${STATS_META.updatedAt}`;
-    renderHotNumbers();
-    draw();
-  </script>
+            <footer class="chat-input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="userInput" placeholder="대출에 대해 무엇이든 물어보세요...">
+                    <button id="sendBtn" class="icon-btn send"><i class="bi bi-send-fill"></i></button>
+                </div>
+            </footer>
+        </main>
+    </div>
+    <script src="main.js"></script>
 </body>
 </html>
