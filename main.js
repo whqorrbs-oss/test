@@ -3,172 +3,247 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatMessages = document.getElementById('chatMessages');
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
+    const quickActions = document.getElementById('quickActions');
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
-    const calcLimitBtn = document.getElementById('calcLimitBtn');
+    
+    const searchModal = document.getElementById('searchModal');
+    const closeModal = document.getElementById('closeModal');
     const propertySearch = document.getElementById('propertySearch');
     const searchResults = document.getElementById('searchResults');
-    const selectedProperty = document.getElementById('selectedProperty');
-    const propNameEl = document.getElementById('propName');
-    const propPriceEl = document.getElementById('propPrice');
-    const chips = document.querySelectorAll('.chip');
 
-    // Mock Property Data (KB Market Price & REB Price Simulation)
+    // App State
+    let currentState = 'START';
+    let userData = {
+        property: null,
+        houseCount: null,
+        income: null,
+        existingDebt: 0
+    };
+
+    // Mock Apartment Data
     const APARTMENTS = [
         { name: '헬리오시티', price: 210000, address: '서울시 송파구 가락동' },
         { name: '반포자이', price: 350000, address: '서울시 서초구 반포동' },
         { name: '마포래미안푸르지오', price: 185000, address: '서울시 마포구 아현동' },
         { name: '잠실엘스', price: 245000, address: '서울시 송파구 잠실동' },
         { name: '경희궁자이', price: 210000, address: '서울시 종로구 홍파동' },
-        { name: '래미안퍼스티지', price: 380000, address: '서울시 서초구 반포동' },
-        { name: '아크로리버파크', price: 420000, address: '서울시 서초구 반포동' }
+        { name: '고덕그라시움', price: 165000, address: '서울시 강동구 고덕동' },
+        { name: '목동신시가지7단지', price: 195000, address: '서울시 양천구 목동' }
     ];
 
-    let currentSelectedPrice = 0;
-
-    // --- Property Search Logic ---
-    propertySearch.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        if (!query) {
-            searchResults.style.display = 'none';
-            return;
-        }
-
-        const filtered = APARTMENTS.filter(apt => apt.name.toLowerCase().includes(query));
-        if (filtered.length > 0) {
-            searchResults.innerHTML = filtered.map(apt => `
-                <div class="search-item" data-name="${apt.name}" data-price="${apt.price}">
-                    <strong>${apt.name}</strong><br>
-                    <small>${apt.address}</small>
-                </div>
-            `).join('');
-            searchResults.style.display = 'block';
-        } else {
-            searchResults.style.display = 'none';
-        }
-    });
-
-    searchResults.addEventListener('click', (e) => {
-        const item = e.target.closest('.search-item');
-        if (!item) return;
-
-        const name = item.dataset.name;
-        const price = parseInt(item.dataset.price);
-
-        currentSelectedPrice = price;
-        propNameEl.textContent = name;
-        propPriceEl.textContent = (price / 10000).toFixed(1) + '억원 (KB/부동산원 시세)';
-        selectedProperty.style.display = 'flex';
-        searchResults.style.display = 'none';
-        propertySearch.value = name;
-    });
-
-    // --- Limit Estimation Logic (LTV/DSR) ---
-    calcLimitBtn.addEventListener('click', () => {
-        if (currentSelectedPrice === 0) {
-            alert('먼저 단지를 선택해주세요.');
-            return;
-        }
-
-        const annualIncome = parseFloat(document.getElementById('annualIncome').value);
-        const existingDebt = parseFloat(document.getElementById('existingDebt').value);
-        const houseCount = parseInt(document.getElementById('houseCount').value);
-
-        // 1. LTV Calculation
-        let ltvRatio = 0.7; // Default
-        if (houseCount === 1) ltvRatio = 0.6;
-        if (houseCount >= 2) ltvRatio = 0.3;
-        
-        const ltvLimit = currentSelectedPrice * ltvRatio;
-
-        // 2. DSR Calculation (Simulated)
-        // Assume 40% DSR, 4.5% interest rate, 40 years term for the new loan
-        const dsrRatio = 0.4;
-        const availableAnnualRepayment = (annualIncome * dsrRatio) - existingDebt;
-        
-        // Mortgage Amortization Formula to reverse-calculate Principal
-        // P = r / (i * (1 + i)^n / ((1 + i)^n - 1))
-        const annualRate = 0.045;
-        const monthlyRate = annualRate / 12;
-        const totalMonths = 40 * 12;
-        const monthlyRepayment = availableAnnualRepayment / 12;
-        
-        let dsrLimit = 0;
-        if (monthlyRepayment > 0) {
-            dsrLimit = (monthlyRepayment * (Math.pow(1 + monthlyRate, totalMonths) - 1)) / (monthlyRate * Math.pow(1 + monthlyRate, totalMonths));
-        }
-
-        // 3. Final Result (Min of LTV and DSR)
-        const maxLoan = Math.min(ltvLimit, dsrLimit);
-
-        document.getElementById('maxLoanAmount').textContent = formatAmount(maxLoan);
-        document.getElementById('ltvLimit').textContent = formatAmount(ltvLimit);
-        document.getElementById('dsrLimit').textContent = formatAmount(dsrLimit);
-        document.getElementById('limitResult').style.display = 'block';
-
-        // Add AI Commentary
-        addMessage(`선택하신 **${propNameEl.textContent}**에 대한 한도 분석 결과입니다.
-        - **LTV 기준**: ${(ltvRatio * 100)}% 적용 시 약 ${formatAmount(ltvLimit)} 가능
-        - **DSR 기준**: 연소득 대비 약 ${formatAmount(dsrLimit)} 가능
-        
-        현재 고객님의 경우 **${ltvLimit < dsrLimit ? 'LTV(담보가치)' : 'DSR(소득상환능력)'}** 규제에 의해 최종 한도가 결정되었습니다.`, 'ai');
-    });
-
-    function formatAmount(amt) {
-        if (amt >= 10000) {
-            return (amt / 10000).toFixed(2) + '억원';
-        }
-        return Math.round(amt).toLocaleString() + '만원';
+    // --- Core Conversation Flow ---
+    function initChat() {
+        addMessage("안녕하세요! **K-Loan AI 상담사**입니다.\n복잡한 대출 규제를 분석해 고객님의 **예상 대출 한도**를 정확히 짚어드릴게요.", 'ai');
+        setTimeout(() => {
+            askProperty();
+        }, 1000);
     }
 
-    // --- Theme Toggle ---
-    themeToggleBtn.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', newTheme);
-        themeToggleBtn.innerHTML = newTheme === 'dark' ? '<i class="bi bi-sun"></i>' : '<i class="bi bi-moon-stars"></i>';
-    });
+    function askProperty() {
+        currentState = 'SELECT_PROPERTY';
+        addMessage("먼저, 한도가 궁금하신 **아파트나 주소**를 알려주세요.", 'ai');
+        showOptions([{ label: "🏠 아파트 검색하기", action: openSearchModal }]);
+    }
 
-    // --- Chat Logic ---
+    function askHouseCount() {
+        currentState = 'SELECT_HOUSE_COUNT';
+        addMessage(`**${userData.property.name}**을 선택하셨군요.\n현재 고객님 세대의 **주택 보유 수**는 어떻게 되시나요?`, 'ai');
+        showOptions([
+            { label: "무주택", value: 0 },
+            { label: "1주택", value: 1 },
+            { label: "2주택 이상", value: 2 }
+        ]);
+    }
+
+    function askIncome() {
+        currentState = 'SELECT_INCOME';
+        addMessage("연간 총 **소득(세전)** 수준을 선택해주세요.", 'ai');
+        showOptions([
+            { label: "4,000만원 미만", value: 3500 },
+            { label: "4,000~7,000만원", value: 5500 },
+            { label: "7,000~1억원", value: 8500 },
+            { label: "1억원 이상", value: 12000 }
+        ]);
+    }
+
+    function askDebt() {
+        currentState = 'SELECT_DEBT';
+        addMessage("혹시 다른 대출의 **연간 상환액**이 있으신가요?", 'ai');
+        showOptions([
+            { label: "없음", value: 0 },
+            { label: "500만원 미만", value: 300 },
+            { label: "500~1,500만원", value: 1000 },
+            { label: "1,500만원 이상", value: 2500 }
+        ]);
+    }
+
+    function showResult() {
+        currentState = 'FINISHED';
+        addMessage("모든 분석이 끝났습니다! 고객님의 예상 한도 리포트입니다.", 'ai');
+        
+        const result = calculateLimits();
+        renderResultCard(result);
+
+        setTimeout(() => {
+            addMessage("더 궁금하신 점이 있나요? '디딤돌 대출'이나 '생애최초 특례' 등에 대해 물어보실 수 있습니다.", 'ai');
+            showOptions([
+                { label: "다시 진단하기", action: () => location.reload() },
+                { label: "상담 종료", action: () => addMessage("이용해주셔서 감사합니다!", "ai") }
+            ]);
+        }, 1500);
+    }
+
+    // --- UI Helpers ---
     function addMessage(text, sender) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
-        messageDiv.innerHTML = `<div class="bubble">${text}</div>`;
+        messageDiv.innerHTML = `<div class="bubble">${text.replace(/\n/g, '<br>')}</div>`;
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    async function handleChat() {
+    function showOptions(options) {
+        quickActions.innerHTML = '';
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'chip';
+            btn.textContent = opt.label;
+            btn.onclick = () => {
+                if (opt.action) {
+                    opt.action();
+                } else {
+                    handleUserSelect(opt.label, opt.value);
+                }
+            };
+            quickActions.appendChild(btn);
+        });
+    }
+
+    function handleUserSelect(label, value) {
+        addMessage(label, 'user');
+        quickActions.innerHTML = '';
+
+        if (currentState === 'SELECT_HOUSE_COUNT') {
+            userData.houseCount = value;
+            setTimeout(askIncome, 800);
+        } else if (currentState === 'SELECT_INCOME') {
+            userData.income = value;
+            setTimeout(askDebt, 800);
+        } else if (currentState === 'SELECT_DEBT') {
+            userData.existingDebt = value;
+            setTimeout(showResult, 800);
+        }
+    }
+
+    // --- Search Modal Logic ---
+    function openSearchModal() {
+        searchModal.style.display = 'flex';
+        propertySearch.focus();
+    }
+
+    closeModal.onclick = () => searchModal.style.display = 'none';
+
+    propertySearch.oninput = (e) => {
+        const query = e.target.value.trim();
+        if (!query) {
+            searchResults.innerHTML = '';
+            return;
+        }
+        const filtered = APARTMENTS.filter(apt => apt.name.includes(query) || apt.address.includes(query));
+        searchResults.innerHTML = filtered.map(apt => `
+            <div class="modal-item" data-name="${apt.name}" data-price="${apt.price}">
+                <strong>${apt.name}</strong><br>
+                <small>${apt.address}</small>
+            </div>
+        `).join('');
+    };
+
+    searchResults.onclick = (e) => {
+        const item = e.target.closest('.modal-item');
+        if (!item) return;
+
+        userData.property = {
+            name: item.dataset.name,
+            price: parseInt(item.dataset.price)
+        };
+
+        searchModal.style.display = 'none';
+        addMessage(`선택 단지: **${userData.property.name}**`, 'user');
+        setTimeout(askHouseCount, 800);
+    };
+
+    // --- Calculation Logic ---
+    function calculateLimits() {
+        const price = userData.property.price;
+        const income = userData.income;
+        const debt = userData.existingDebt;
+        const houses = userData.houseCount;
+
+        // LTV
+        let ltvRatio = houses === 0 ? 0.7 : (houses === 1 ? 0.6 : 0.3);
+        const ltvLimit = price * ltvRatio;
+
+        // DSR (4.5% interest, 40 years)
+        const dsrRatio = 0.4;
+        const availableRepay = (income * dsrRatio) - debt;
+        const r = 0.045 / 12;
+        const n = 40 * 12;
+        let dsrLimit = 0;
+        if (availableRepay > 0) {
+            dsrLimit = (availableRepay / 12 * (Math.pow(1 + r, n) - 1)) / (r * Math.pow(1 + r, n));
+        }
+
+        return {
+            total: Math.min(ltvLimit, dsrLimit),
+            ltv: ltvLimit,
+            dsr: dsrLimit,
+            reason: ltvLimit < dsrLimit ? '담보 가치(LTV) 제한' : '상환 능력(DSR) 제한'
+        };
+    }
+
+    function renderResultCard(res) {
+        const card = document.createElement('div');
+        card.className = 'result-card';
+        card.innerHTML = `
+            <h4>${userData.property.name} 예상 한도</h4>
+            <div class="result-amount">${formatAmount(res.total)}</div>
+            <div class="result-detail">
+                <span>LTV 기준 한도</span>
+                <strong>${formatAmount(res.ltv)}</strong>
+            </div>
+            <div class="result-detail">
+                <span>DSR 기준 한도</span>
+                <strong>${formatAmount(res.dsr)}</strong>
+            </div>
+            <div class="result-detail" style="margin-top:12px; border-top:1px solid #eee; padding-top:8px;">
+                <span>한도 결정 사유</span>
+                <span style="color:var(--primary-color); font-weight:bold;">${res.reason}</span>
+            </div>
+        `;
+        chatMessages.appendChild(card);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function formatAmount(amt) {
+        if (amt >= 10000) return (amt / 10000).toFixed(2) + '억원';
+        return Math.round(amt).toLocaleString() + '만원';
+    }
+
+    // --- Utilities ---
+    themeToggleBtn.onclick = () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        document.documentElement.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    };
+
+    // Chat Input (Optional for generic questions)
+    sendBtn.onclick = () => {
         const text = userInput.value.trim();
         if (!text) return;
-
         addMessage(text, 'user');
         userInput.value = '';
+        setTimeout(() => addMessage("대출 관련 질문이신가요? 아직은 한도 진단 절차에 집중하고 있습니다. 버튼을 눌러 진행해주세요!", "ai"), 800);
+    };
 
-        setTimeout(() => {
-            const response = getMockAIResponse(text);
-            addMessage(response, 'ai');
-        }, 800);
-    }
-
-    sendBtn.addEventListener('click', handleChat);
-    userInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleChat();
-    });
-
-    chips.forEach(chip => {
-        chip.addEventListener('click', () => {
-            userInput.value = chip.textContent.replace(/[🏠🏢💼🔍]/g, '').trim();
-            handleChat();
-        });
-    });
-
-    function getMockAIResponse(query) {
-        if (query.includes('디딤돌')) {
-            return "🏠 **내집마련 디딤돌 대출**은 무주택 서민을 위한 저금리 구입 자금 대출입니다.\n- **LTV**: 최대 70% (생애최초 80%)\n- **DSR**: 적용 제외 (DTI 60% 적용) 하여 한도가 더 넉넉할 수 있습니다.";
-        }
-        if (query.includes('LTV') || query.includes('DSR')) {
-            return "🔍 **대출 규제 핵심**\n- **LTV**: 집값 대비 한도 (현재 비규제지역 70%)\n- **DSR**: 내 소득으로 이자를 감당할 수 있는지 보는 지표 (현재 40% 규제).\n**한도 진단기**에 소득을 입력하시면 정확한 값을 계산해 드립니다.";
-        }
-        return "현재 한국의 대출 규제는 **소득(DSR)**에 따라 한도가 크게 좌우됩니다. 왼쪽 진단기에 연소득과 기존 대출을 입력해 보시면 가장 정확한 추정 한도를 확인하실 수 있습니다.";
-    }
+    // Start Chat
+    initChat();
 });
