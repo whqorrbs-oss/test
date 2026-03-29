@@ -9,57 +9,56 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar / Calculator Section -->
+        <!-- Sidebar / Limit Diagnostic Section -->
         <aside class="calculator-panel">
             <div class="panel-header">
-                <h2><i class="bi bi-calculator"></i> 대출 계산기</h2>
-                <p>월 상환액을 미리 확인해보세요.</p>
+                <h2><i class="bi bi-shield-check"></i> 대출 한도 진단</h2>
+                <p>LTV/DSR 규제 기반 한도를 추정합니다.</p>
             </div>
             <div class="calc-form">
                 <div class="input-group">
-                    <label>대출 종류</label>
-                    <select id="loanCategory">
-                        <option value="household">가계대출</option>
-                        <option value="business">기업대출</option>
+                    <label>담보 대상 (단지명/주소)</label>
+                    <div class="search-wrapper">
+                        <input type="text" id="propertySearch" placeholder="예: 헬리오시티, 반포자이">
+                        <div id="searchResults" class="search-results" style="display: none;"></div>
+                    </div>
+                </div>
+                <div id="selectedProperty" class="selected-property-card" style="display: none;">
+                    <span id="propName">-</span>
+                    <strong id="propPrice">0원 (KB시세 기준)</strong>
+                </div>
+                <div class="input-group">
+                    <label>연소득 (만원)</label>
+                    <input type="number" id="annualIncome" placeholder="예: 6000" value="6000">
+                </div>
+                <div class="input-group">
+                    <label>기존 대출 연간 원리금 상환액 (만원)</label>
+                    <input type="number" id="existingDebt" placeholder="예: 0" value="0">
+                </div>
+                <div class="input-group">
+                    <label>주택 보유 수</label>
+                    <select id="houseCount">
+                        <option value="0">무주택 (LTV 70%)</option>
+                        <option value="1">1주택 (LTV 60%)</option>
+                        <option value="2">2주택 이상 (LTV 0~30%)</option>
                     </select>
                 </div>
-                <div class="input-group">
-                    <label>대출 목적</label>
-                    <select id="loanPurpose">
-                        <option value="home">주택구입</option>
-                        <option value="living">생활안정자금</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>대출 금액 (만원)</label>
-                    <input type="number" id="loanAmount" placeholder="예: 5000" value="10000">
-                </div>
-                <div class="input-group">
-                    <label>대출 금리 (%)</label>
-                    <input type="number" id="loanRate" step="0.1" placeholder="예: 3.5" value="4.5">
-                </div>
-                <div class="input-group">
-                    <label>대출 기간 (년)</label>
-                    <input type="number" id="loanTerm" placeholder="예: 30" value="30">
-                </div>
-                <div class="input-group">
-                    <label>상환 방식</label>
-                    <select id="repayMethod">
-                        <option value="level">원리금균등상환</option>
-                        <option value="principal">원금균등상환</option>
-                    </select>
-                </div>
-                <button id="calcBtn" class="primary-btn">계산하기</button>
+                <button id="calcLimitBtn" class="primary-btn">한도 확인하기</button>
             </div>
-            <div id="calcResult" class="calc-result" style="display: none;">
-                <div class="result-item">
-                    <span>월 평균 상환액</span>
-                    <strong id="monthlyPayment">0원</strong>
+            <div id="limitResult" class="calc-result" style="display: none;">
+                <div class="result-header">추정 최대 한도</div>
+                <div class="main-limit" id="maxLoanAmount">0원</div>
+                <div class="limit-details">
+                    <div class="detail-item">
+                        <span>LTV 제한 금액</span>
+                        <span id="ltvLimit">0원</span>
+                    </div>
+                    <div class="detail-item">
+                        <span>DSR 제한 금액</span>
+                        <span id="dsrLimit">0원</span>
+                    </div>
                 </div>
-                <div class="result-item">
-                    <span>총 이자 합계</span>
-                    <strong id="totalInterest">0원</strong>
-                </div>
+                <p class="limit-info">* 실제 한도는 은행 심사에 따라 달라질 수 있습니다.</p>
             </div>
         </aside>
 
