@@ -5,6 +5,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     const calcBtn = document.getElementById('calcBtn');
     const chips = document.querySelectorAll('.chip');
+    const loanCategory = document.getElementById('loanCategory');
+    const loanPurpose = document.getElementById('loanPurpose');
+
+    const purposeOptions = {
+        household: [
+            { value: 'home', text: '주택구입' },
+            { value: 'living', text: '생활안정자금' }
+        ],
+        business: [
+            { value: 'individual', text: '개인사업자' },
+            { value: 'corp', text: '법인' }
+        ]
+    };
+
+    loanCategory.addEventListener('change', (e) => {
+        const selectedCategory = e.target.value;
+        const options = purposeOptions[selectedCategory];
+        
+        loanPurpose.innerHTML = options.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('');
+    });
 
     // --- Theme Toggle ---
     themeToggleBtn.addEventListener('click', () => {
@@ -59,6 +79,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (query.includes('LTV') || query.includes('DSR')) {
             return "🔍 **대출 규제 용어 설명**\n- **LTV**: 주택담보대출비율. 집값 대비 대출 가능 금액입니다.\n- **DSR**: 총부채원리금상환비율. 연소득 대비 전체 대출 원리금 상환액 비중을 뜻합니다. 한국에서는 현재 40% 규제가 적용되는 경우가 많습니다.";
+        }
+        if (query.includes('개인사업자')) {
+            return "💼 **개인사업자 대출**은 사업 운영 자금이나 시설 자금을 지원하는 상품입니다.\n- **특징**: 사업자 등록증이 필요하며, 매출 실적이나 신용도에 따라 한도가 결정됩니다. 소상공인진흥공단의 정책 자금도 확인해보시는 것을 추천합니다.";
+        }
+        if (query.includes('법인')) {
+            return "🏢 **법인 대출**은 법인 기업의 운영 및 투자를 위한 금융 지원입니다.\n- **특징**: 재무제표, 사업계획서 등 상세 증빙 서류가 필요하며, 기술보증기금이나 신용보증기금의 보증서를 연계하는 경우가 많습니다.";
         }
         return "질문하신 내용에 대해 분석 중입니다. 더 구체적으로 '신혼부부 전세대출'이나 '아파트 담보대출 한도' 등에 대해 물어봐 주시면 상세히 답변해 드릴게요!";
     }

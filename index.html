@@ -17,6 +17,20 @@
             </div>
             <div class="calc-form">
                 <div class="input-group">
+                    <label>대출 종류</label>
+                    <select id="loanCategory">
+                        <option value="household">가계대출</option>
+                        <option value="business">기업대출</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>대출 목적</label>
+                    <select id="loanPurpose">
+                        <option value="home">주택구입</option>
+                        <option value="living">생활안정자금</option>
+                    </select>
+                </div>
+                <div class="input-group">
                     <label>대출 금액 (만원)</label>
                     <input type="number" id="loanAmount" placeholder="예: 5000" value="10000">
                 </div>
@@ -71,7 +85,8 @@
             <div class="quick-actions">
                 <button class="chip">🏠 디딤돌 대출 자격</button>
                 <button class="chip">🏢 전세버팀목 안내</button>
-                <button class="chip">📉 현재 금리 추이</button>
+                <button class="chip">💼 개인사업자 대출</button>
+                <button class="chip">🏢 법인 대출 상담</button>
                 <button class="chip">🔍 LTV/DSR이 뭐야?</button>
             </div>
 
