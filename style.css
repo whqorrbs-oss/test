@@ -52,6 +52,47 @@ body {
     overflow: hidden;
 }
 
+/* Loading Spinner */
+.loading-dots {
+    display: flex;
+    gap: 4px;
+    padding: 8px 0;
+}
+.dot-item {
+    width: 6px; height: 6px; background: var(--primary-color);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+.dot-item:nth-child(1) { animation-delay: -0.32s; }
+.dot-item:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
+
+.result-card .unit-info {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.market-prices {
+    background: var(--bg-color);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+}
+
+.market-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+    color: var(--text-sub);
+}
+
 .chat-panel {
     flex: 1;
     display: flex;
